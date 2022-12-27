@@ -1,5 +1,3 @@
-_Messing around right now, currently this code returns 25 days no matter what. I have to fix it, I'll update asap._ 
-
 Install Rust by running the following command:
 
 ```curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh```
@@ -23,27 +21,10 @@ thread = "0.4.3"
 time = "0.1.40"
 ```
 
-</br>
-
-For this program, your Cargo.toml should look like this:
-```
-[package]
-name = "countdown"
-version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-solana-sdk = "1.14.11"
-
-```
-
 Then, you can run the following command to install the dependencies:
 
 ```
-cargo build --release 
-./target/release/countdown
+cargo build
 ```
 
  </br>
