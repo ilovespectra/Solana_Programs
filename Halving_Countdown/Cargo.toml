@@ -1,0 +1,10 @@
+[package]
+name = "countdown"
+version = "0.3.4"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+thread = "0.4.3"
+time = "0.1.40"
