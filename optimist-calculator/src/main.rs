@@ -1,84 +1,38 @@
-extern crate gtk;
-extern crate reqwest;
-
-use gtk::prelude::*;
-use reqwest::Client;
+use std::collections::HashMap;
+use std::io;
 
 fn main() {
-    // Initialize GTK and create the main window
-    gtk::init().expect("Failed to initialize GTK.");
-    let window = gtk::Window::new(gtk::WindowType::Toplevel);
+    // Create a HashMap to store the wallet addresses and their values
+    let mut wallets: HashMap<String, f64> = HashMap::new();
 
-    // Set up the UI elements
-    let vbox = gtk::Box::new(gtk::Orientation::Vertical, 5);
-    let entry = gtk::Entry::new();
-    let button = gtk::Button::new_with_label("Calculate Totals");
-    let label = gtk::Label::new(None);
-    vbox.pack_start(&entry, false, false, 0);
-    vbox.pack_start(&button, false, false, 0);
-    vbox.pack_start(&label, false, false, 0);
-    window.add(&vbox);
+    // Loop indefinitely until the user decides to quit
+    loop {
+        println!("Enter a public wallet address (or 'q' to quit):");
 
-    // Set up the button click event handler
-    let client = Client::new();
-    let label_clone = label.clone();
-    button.connect_clicked(move |_| {
-        let wallet_addresses = entry.get_text().unwrap();
-        let totals = calculate_totals(&client, &wallet_addresses);
-        label_clone.set_text(&format!("Total: {}", totals));
-    });
+        // Read the user's input
+        let mut address = String::new();
+        io::stdin().read_line(&mut address).expect("Failed to read line");
+        address = address.trim().to_string();
 
-    // Set up the window close event handler
-    window.connect_delete_event(|_, _| {
-        gtk::main_quit();
-        Inhibit(false)
-    });
+        // Check if the user wants to quit
+        if address == "q" {
+            break;
+        }
 
-    // Show the window and run the GTK event loop
-    window.show_all();
-    gtk::main();
-}
+        // If the wallet address is not in the HashMap, ask the user for its value
+        if !wallets.contains_key(&address) {
+            println!("Enter the value of this wallet at its all-time high:");
 
-fn calculate_totals(client: &Client, wallet_addresses: &str) -> f64 {
-    let mut totals = 0.0;
+            let mut value_str = String::new();
+            io::stdin().read_line(&mut value_str).expect("Failed to read line");
+            let value: f64 = value_str.trim().parse().expect("Failed to parse value");
 
-    // Split the wallet addresses by newline
-    for address in wallet_addresses.split('\n') {
-        // Look up the token balance for the address
-        let balance = get_token_balance(client, address);
-
-        // Look up the all-time high price for the token
-        let price = get_token_price(client, address);
-        
-        // Calculate the total value of the token balance at the all-time high price
-      totals += balance * price;
+            // Insert the wallet address and its value into the HashMap
+            wallets.insert(address, value);
+        }
     }
 
-    totals
-}
-
-fn get_token_balance(client: &Client, address: &str) -> f64 {
-    // Use the reqwest library to make an HTTP request to a cryptocurrency balance API
-    // and retrieve the token balance for the given address
-    let balance: f64 = client
-        .get(format!("balance_api_url/{}", address).as_str())
-        .send()
-        .unwrap()
-        .json()
-        .unwrap();
-
-    balance
-}
-
-fn get_token_price(client: &Client, address: &str) -> f64 {
-    // Use the reqwest library to make an HTTP request to a cryptocurrency price API
-    // and retrieve the all-time high price for the token associated with the given address
-    let price: f64 = client
-        .get(format!("price_api_url/{}", address).as_str())
-        .send()
-        .unwrap()
-        .json()
-        .unwrap();
-
-    price
+    // Calculate the total value of all the wallet addresses
+    let total: f64 = wallets.values().sum();
+    println!("Total value of all wallet addresses: {}", total);
 }
