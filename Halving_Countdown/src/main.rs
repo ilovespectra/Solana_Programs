@@ -1,10 +1,30 @@
 use std::{thread, time::Duration};
+use reqwest::Client;
 
 const HALVING_INTERVAL: u64 = 52_592_000; // seconds
 const HALVING_BLOCKS: u64 = 21_600_000; // blocks
+const API_URL: &str = "https://api.solana.com";
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = Client::new();
+    let response = client.get(API_URL)
+        .header("Content-Type", "application/json")
+        .send()?;
+    let json: serde_json::Value = response.json()?;
+    let current_block_height: u64 = json["result"]["block_height"].as_u64()
+        .expect("Error parsing block height");
+
     let mut blocks_left = HALVING_BLOCKS;
+    let mut halving_block_height = 0;
+
+    // Find the block height of the previous halving
+    while blocks_left > 0 {
+        blocks_left -= HALVING_BLOCKS;
+        halving_block_height += HALVING_BLOCKS;
+    }
+
+    // Calculate the blocks remaining until the next halving
+    blocks_left = current_block_height - halving_block_height;
 
     loop {
         let seconds_left = (blocks_left as f64 / 10.0).ceil() as u64;
