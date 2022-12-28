@@ -1,38 +1,79 @@
-use std::collections::HashMap;
-use std::io;
+use reqwest::Client;
+use serde::{Deserialize, Serialize};
 
-fn main() {
-    // Create a HashMap to store the wallet addresses and their values
-    let mut wallets: HashMap<String, f64> = HashMap::new();
+// Replace YOUR_API_KEY with your actual Coinmarketcap API key
+const API_KEY: &str = "YOUR-API-KEY";
 
-    // Loop indefinitely until the user decides to quit
-    loop {
-        println!("Enter a public wallet address (or 'q' to quit):");
+#[derive(Debug, Deserialize, Serialize)]
+struct Portfolio {
+    id: u32,
+    name: String,
+    description: String,
+    created_at: String,
+    updated_at: String,
+    entries: Vec<Entry>,
+}
 
-        // Read the user's input
-        let mut address = String::new();
-        io::stdin().read_line(&mut address).expect("Failed to read line");
-        address = address.trim().to_string();
+#[derive(Debug, Deserialize, Serialize)]
+struct Entry {
+    id: u32,
+    symbol: String,
+    name: String,
+    quantity: f32,
+}
 
-        // Check if the user wants to quit
-        if address == "q" {
-            break;
-        }
+#[derive(Debug, Deserialize, Serialize)]
+struct Cryptocurrency {
+    id: u32,
+    name: String,
+    symbol: String,
+    all_time_high: AllTimeHigh,
+}
 
-        // If the wallet address is not in the HashMap, ask the user for its value
-        if !wallets.contains_key(&address) {
-            println!("Enter the value of this wallet at its all-time high:");
+#[derive(Debug, Deserialize, Serialize)]
+struct AllTimeHigh {
+    price: f32,
+    timestamp: u64,
+}
 
-            let mut value_str = String::new();
-            io::stdin().read_line(&mut value_str).expect("Failed to read line");
-            let value: f64 = value_str.trim().parse().expect("Failed to parse value");
+use tokio;
 
-            // Insert the wallet address and its value into the HashMap
-            wallets.insert(address, value);
-        }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create a new HTTP client
+    let client = Client::new();
+
+    // Make a request to the Coinmarketcap API to fetch the portfolio
+    let portfolio_url = format!("https://pro-api.coinmarketcap.com/v1/portfolio/{id}", id = 1);
+    let response = tokio::task::block_on(client.get(&portfolio_url)
+        .header("X-CMC_PRO_API_KEY", API_KEY)
+        .send())?;
+
+    // Deserialize the response into a Portfolio struct
+    let portfolio: Portfolio = response.json()?;
+
+    // Initialize a variable to hold the total value of the portfolio at all-time highs
+    let mut portfolio_value_at_all_time_highs = 0.0;
+
+    // Iterate over the entries in the portfolio
+    for entry in portfolio.entries {
+        // Make a request to the Coinmarketcap API to fetch the all-time high price for the token
+        let cryptocurrency_url = format!("https://pro-api.coinmarketcap.com/v1/cryptocurrency/info?symbol={symbol}", symbol = entry.symbol);
+        let response = tokio::task::block_on(client.get(&cryptocurrency_url)
+            .header("X-CMC_PRO_API_KEY", API_KEY)
+            .send())?;
+
+        // Deserialize the response into a Cryptocurrency struct
+        let cryptocurrency: Cryptocurrency = response.json()?;
+
+        // Calculate the value of the entry at the all-time high price
+        let value_at_all_time_high = cryptocurrency.all_time_high.price * entry.quantity;
+
+        // Add the value of the entry to the total portfolio value
+        portfolio_value_at_all_time_highs += value_at_all_time_high;
     }
 
-    // Calculate the total value of all the wallet addresses
-    let total: f64 = wallets.values().sum();
-    println!("Total value of all wallet addresses: {}", total);
+    // Print the total portfolio value at all-time highs
+    println!("Total portfolio value at all-time highs: ${:.2}", portfolio_value_at_all_time_highs);
+
+    Ok(())
 }
