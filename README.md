@@ -1,3 +1,5 @@
+This has turned into just a general rust repo, not worth cloning ATM, public to get help finishing these programs.
+
 <i>Most of these programs still receive plenty of errors, I'm writing these with the help of the chat.openai.com bot, who has been incredibly helpful in drafting and debugging these codes to get them to this point. Feel free to make any corrections you can find, fork, PR, or just clone and see what we can come up with.</i>
 
 Install Rust by running the following command:
