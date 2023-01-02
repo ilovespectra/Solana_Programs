@@ -1,79 +1,48 @@
-use reqwest::Client;
-use serde::{Deserialize, Serialize};
+use std::io;
 
-// Replace YOUR_API_KEY with your actual Coinmarketcap API key
-const API_KEY: &str = "YOUR-API-KEY";
+fn main() {
+    // Read in the API key from the user
+    println!("Enter your CoinMarketCap API key: ");
+    let mut api_key = String::new();
+    io::stdin().read_line(&mut api_key).expect("Failed to read API key");
 
-#[derive(Debug, Deserialize, Serialize)]
-struct Portfolio {
-    id: u32,
-    name: String,
-    description: String,
-    created_at: String,
-    updated_at: String,
-    entries: Vec<Entry>,
-}
+    // Read in the number of tokens in the user's portfolio
+    println!("Enter the number of tokens in your portfolio: ");
+    let mut num_tokens = String::new();
+    io::stdin().read_line(&mut num_tokens).expect("Failed to read number of tokens");
+    let num_tokens: u32 = num_tokens.trim().parse().expect("Failed to parse number of tokens");
 
-#[derive(Debug, Deserialize, Serialize)]
-struct Entry {
-    id: u32,
-    symbol: String,
-    name: String,
-    quantity: f32,
-}
+    // Read in the information for each token
+    let mut portfolio = Vec::new();
+    for i in 0..num_tokens {
+        println!("Enter the name of token {}: ", i + 1);
+        let mut name = String::new();
+        io::stdin().read_line(&mut name).expect("Failed to read token name");
+        let name = name.trim();
 
-#[derive(Debug, Deserialize, Serialize)]
-struct Cryptocurrency {
-    id: u32,
-    name: String,
-    symbol: String,
-    all_time_high: AllTimeHigh,
-}
+        println!("Enter the number of {} in your portfolio: ", name);
+        let mut amount = String::new();
+        io::stdin().read_line(&mut amount).expect("Failed to read token amount");
+        let amount: u32 = amount.trim().parse().expect("Failed to parse token amount");
 
-#[derive(Debug, Deserialize, Serialize)]
-struct AllTimeHigh {
-    price: f32,
-    timestamp: u64,
-}
-
-use tokio;
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create a new HTTP client
-    let client = Client::new();
-
-    // Make a request to the Coinmarketcap API to fetch the portfolio
-    let portfolio_url = format!("https://pro-api.coinmarketcap.com/v1/portfolio/{id}", id = 1);
-    let response = tokio::task::block_on(client.get(&portfolio_url)
-        .header("X-CMC_PRO_API_KEY", API_KEY)
-        .send())?;
-
-    // Deserialize the response into a Portfolio struct
-    let portfolio: Portfolio = response.json()?;
-
-    // Initialize a variable to hold the total value of the portfolio at all-time highs
-    let mut portfolio_value_at_all_time_highs = 0.0;
-
-    // Iterate over the entries in the portfolio
-    for entry in portfolio.entries {
-        // Make a request to the Coinmarketcap API to fetch the all-time high price for the token
-        let cryptocurrency_url = format!("https://pro-api.coinmarketcap.com/v1/cryptocurrency/info?symbol={symbol}", symbol = entry.symbol);
-        let response = tokio::task::block_on(client.get(&cryptocurrency_url)
-            .header("X-CMC_PRO_API_KEY", API_KEY)
-            .send())?;
-
-        // Deserialize the response into a Cryptocurrency struct
-        let cryptocurrency: Cryptocurrency = response.json()?;
-
-        // Calculate the value of the entry at the all-time high price
-        let value_at_all_time_high = cryptocurrency.all_time_high.price * entry.quantity;
-
-        // Add the value of the entry to the total portfolio value
-        portfolio_value_at_all_time_highs += value_at_all_time_high;
+        portfolio.push((name, amount));
     }
 
-    // Print the total portfolio value at all-time highs
-    println!("Total portfolio value at all-time highs: ${:.2}", portfolio_value_at_all_time_highs);
+    // Fetch the all time high price for each token
+    let mut total_value = 0;
+    for (name, amount) in &portfolio {
+        let all_time_high = fetch_all_time_high(api_key, name);
+        let value = all_time_high * *amount;
+        total_value += value;
+        println!("If {} were at their all time high, {} tokens would be worth {}", name, amount, value);
+    }
 
-    Ok(())
+    println!("Your portfolio would be worth {} if all tokens were at their all time high.", total_value);
+}
+
+// This function fetches the all time high price for a given token from the CoinMarketCap API
+fn fetch_all_time_high(api_key: String, token_name: &str) -> u32 {
+    // TODO: Use the CoinMarketCap API to fetch the all time high price for the given token
+    // For now, we'll just return a placeholder value of 1000
+    1000
 }
